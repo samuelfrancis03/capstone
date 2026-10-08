@@ -24,14 +24,14 @@ class _LoginScreenState extends State<LoginScreen> {
             key: _formKey,
             child: Column(
               children: [
-                const Icon(Icons.checklist, size: 90, color: Colors.teal),
+                const Icon(Icons.movie, size: 90, color: Colors.indigo),
                 const SizedBox(height: 16),
                 const Text(
-                  'My daily to do list',
+                  'Meus Filmes',
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
                 const Text(
-                  'App que permite gerenciar rotina.',
+                  'Descubra e favorite seus filmes.',
                   style: TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(height: 32),

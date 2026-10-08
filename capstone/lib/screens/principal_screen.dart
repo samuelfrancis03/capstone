@@ -2,8 +2,11 @@
 
 import 'package:flutter/material.dart';
 
-import 'buscar_tarefa_screen.dart';
-import 'metas_diarias_screen.dart';
+import '../models/filme.dart';
+import '../services/filmes_service.dart';
+import '../widgets/filme_card.dart';
+import 'buscar_filme_screen.dart';
+import 'favoritos_screen.dart';
 
 class PrincipalScreen extends StatefulWidget {
   const PrincipalScreen({super.key});
@@ -13,21 +16,14 @@ class PrincipalScreen extends StatefulWidget {
 }
 
 class _PrincipalScreenState extends State<PrincipalScreen> {
-  // Dados fixos
-  List<String> tarefas = [
-    'Estudar Flutter',
-    'Fazer atividade da faculdade',
-    'Revisar conteúdo',
-  ];
-  List<bool> concluidas = [false, false, false];
-
-  final _novaTarefaController = TextEditingController();
+  // Busca os filmes populares assim que a tela abre
+  late Future<List<Filme>> _filmes = FilmesService.buscarPopulares();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My daily to do list'),
+        title: const Text('Meus Filmes'),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -35,18 +31,18 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const BuscarTarefaScreen(),
+                  builder: (context) => const BuscarFilmeScreen(),
                 ),
               );
             },
           ),
           IconButton(
-            icon: const Icon(Icons.flag),
+            icon: const Icon(Icons.favorite),
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const MetasDiariasScreen(),
+                  builder: (context) => const FavoritosScreen(),
                 ),
               );
             },
@@ -57,74 +53,53 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Cartão com o dia selecionado
+            // Cartão de destaque
             Card(
-              color: Colors.teal[50],
+              color: Colors.indigo[50],
               child: const ListTile(
-                leading: Icon(Icons.calendar_today, color: Colors.teal),
+                leading: Icon(Icons.local_movies, color: Colors.indigo),
                 title: Text(
-                  'Segunda-feira',
+                  'Filmes populares',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-                subtitle: Text('Suas tarefas de hoje'),
+                subtitle: Text('Os filmes mais vistos do momento'),
               ),
             ),
             const SizedBox(height: 12),
 
-            // Adicionar tarefa
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _novaTarefaController,
-                    decoration: const InputDecoration(
-                      hintText: 'Nova tarefa',
-                      border: OutlineInputBorder(),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  icon: const Icon(Icons.add),
-                  onPressed: () {
-                    if (_novaTarefaController.text.isNotEmpty) {
-                      setState(() {
-                        tarefas.add(_novaTarefaController.text);
-                        concluidas.add(false);
-                      });
-                      _novaTarefaController.clear();
-                    }
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // Lista de tarefas
+            // Lista de filmes vinda da API
             Expanded(
-              child: ListView.builder(
-                itemCount: tarefas.length,
-                itemBuilder: (context, index) {
-                  return Card(
-                    child: CheckboxListTile(
-                      title: Text(
-                        tarefas[index],
-                        style: TextStyle(
-                          // Risca o texto quando a tarefa está concluída
-                          decoration: concluidas[index]
-                              ? TextDecoration.lineThrough
-                              : null,
-                        ),
+              child: FutureBuilder<List<Filme>>(
+                future: _filmes,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('Não foi possível carregar os filmes'),
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _filmes = FilmesService.buscarPopulares();
+                              });
+                            },
+                            child: const Text('Tentar novamente'),
+                          ),
+                        ],
                       ),
-                      value: concluidas[index],
-                      onChanged: (valor) {
-                        setState(() {
-                          concluidas[index] = valor!;
-                        });
-                      },
-                    ),
+                    );
+                  }
+
+                  final filmes = snapshot.data!;
+                  return ListView.builder(
+                    itemCount: filmes.length,
+                    itemBuilder: (context, index) {
+                      return FilmeCard(filme: filmes[index]);
+                    },
                   );
                 },
               ),

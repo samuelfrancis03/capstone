@@ -12,14 +12,14 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'My daily to do list',
+      title: 'Meus Filmes',
       debugShowCheckedModeBanner: false,
       // Cor principal do app
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         scaffoldBackgroundColor: Colors.grey[100],
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.teal,
+          backgroundColor: Colors.indigo,
           foregroundColor: Colors.white,
           centerTitle: true,
         ),
