@@ -117,12 +117,6 @@ flutter pub get
 flutter run
 ```
 
-Para rodar os testes automatizados:
-
-```bash
-flutter test
-```
-
 ### 5.3 Plataformas
 
 O projeto foi criado com suporte a Android, iOS, Web, Windows, macOS e Linux.
