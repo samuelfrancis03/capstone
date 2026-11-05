@@ -1,10 +1,11 @@
 // Tela desenvolvida por Igor Rodrigues
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../models/filme.dart';
-import '../services/filmes_service.dart';
+import '../providers/filme_provider.dart';
 import '../widgets/filme_card.dart';
+import '../widgets/mensagem_widget.dart';
 
 class BuscarFilmeScreen extends StatefulWidget {
   const BuscarFilmeScreen({super.key});
@@ -17,11 +18,23 @@ class _BuscarFilmeScreenState extends State<BuscarFilmeScreen> {
   final _formKey = GlobalKey<FormState>();
   final _buscaController = TextEditingController();
 
-  // Fica nulo até o usuário fazer a primeira busca
-  Future<List<Filme>>? _resultados;
+  @override
+  void dispose() {
+    _buscaController.dispose();
+    super.dispose();
+  }
+
+  void _pesquisar() {
+    if (_formKey.currentState!.validate()) {
+      FocusScope.of(context).unfocus(); // fecha o teclado
+      context.read<FilmeProvider>().buscar(_buscaController.text.trim());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<FilmeProvider>();
+
     return Scaffold(
       appBar: AppBar(title: const Text('Buscar Filme')),
       body: Padding(
@@ -32,73 +45,77 @@ class _BuscarFilmeScreenState extends State<BuscarFilmeScreen> {
               key: _formKey,
               child: TextFormField(
                 controller: _buscaController,
+                textInputAction: TextInputAction.search,
                 decoration: const InputDecoration(
                   labelText: 'Nome do filme',
+                  hintText: 'Ex: Interestelar',
                   prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Colors.white,
                 ),
                 validator: (valor) {
-                  if (valor == null || valor.isEmpty) {
+                  if (valor == null || valor.trim().isEmpty) {
                     return 'Digite o nome do filme';
+                  }
+                  if (valor.trim().length < 2) {
+                    return 'Digite pelo menos 2 letras';
                   }
                   return null;
                 },
+                onFieldSubmitted: (_) => _pesquisar(),
               ),
             ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
-              height: 45,
-              child: FilledButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    setState(() {
-                      _resultados = FilmesService.buscarPorNome(
-                        _buscaController.text,
-                      );
-                    });
-                  }
-                },
-                child: const Text('Buscar'),
+              height: 48,
+              child: FilledButton.icon(
+                onPressed: provider.carregandoBusca ? null : _pesquisar,
+                icon: const Icon(Icons.search),
+                label: const Text('Pesquisar'),
               ),
             ),
             const SizedBox(height: 16),
-
-            // A lista só aparece depois de buscar
-            if (_resultados != null)
-              Expanded(
-                child: FutureBuilder<List<Filme>>(
-                  future: _resultados,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return const Center(
-                        child: Text('Não foi possível buscar os filmes'),
-                      );
-                    }
-
-                    final filmes = snapshot.data!;
-                    if (filmes.isEmpty) {
-                      return const Center(
-                        child: Text('Nenhum filme encontrado'),
-                      );
-                    }
-                    return ListView.builder(
-                      itemCount: filmes.length,
-                      itemBuilder: (context, index) {
-                        return FilmeCard(filme: filmes[index]);
-                      },
-                    );
-                  },
-                ),
-              ),
+            Expanded(child: _resultados(provider)),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _resultados(FilmeProvider provider) {
+    if (provider.ultimaBusca == null) {
+      return const MensagemWidget(
+        icone: Icons.manage_search,
+        titulo: 'Pesquise um filme pelo nome',
+        texto: 'Os resultados vêm direto do The Movie Database (TMDB).',
+      );
+    }
+
+    if (provider.carregandoBusca) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (provider.erroBusca != null) {
+      return MensagemWidget(
+        icone: Icons.wifi_off,
+        titulo: 'Não foi possível buscar os filmes',
+        texto: provider.erroBusca,
+        aoTentarNovamente: () => provider.buscar(provider.ultimaBusca!),
+      );
+    }
+
+    if (provider.resultadosBusca.isEmpty) {
+      return MensagemWidget(
+        icone: Icons.search_off,
+        titulo: 'Nenhum filme encontrado',
+        texto: 'Não achamos resultados para "${provider.ultimaBusca}".',
+      );
+    }
+
+    return ListView.builder(
+      itemCount: provider.resultadosBusca.length,
+      itemBuilder: (context, index) {
+        return FilmeCard(filme: provider.resultadosBusca[index]);
+      },
     );
   }
 }

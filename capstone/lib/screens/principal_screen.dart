@@ -1,31 +1,44 @@
 // Tela desenvolvida por Samuel Rocha
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../models/filme.dart';
-import '../services/filmes_service.dart';
+import '../providers/filme_provider.dart';
 import '../widgets/filme_card.dart';
+import '../widgets/mensagem_widget.dart';
 import 'buscar_filme_screen.dart';
 import 'favoritos_screen.dart';
 
 class PrincipalScreen extends StatefulWidget {
-  const PrincipalScreen({super.key});
+  final String nomeUsuario;
+
+  const PrincipalScreen({super.key, required this.nomeUsuario});
 
   @override
   State<PrincipalScreen> createState() => _PrincipalScreenState();
 }
 
 class _PrincipalScreenState extends State<PrincipalScreen> {
-  // Busca os filmes populares assim que a tela abre
-  late Future<List<Filme>> _filmes = FilmesService.buscarPopulares();
+  @override
+  void initState() {
+    super.initState();
+    // Busca os filmes populares assim que a tela abre.
+    // addPostFrameCallback evita chamar notifyListeners durante o build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<FilmeProvider>().carregarPopulares();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<FilmeProvider>();
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Meus Filmes'),
+        title: const Text('My Movie List'),
         actions: [
           IconButton(
+            tooltip: 'Buscar filme',
             icon: const Icon(Icons.search),
             onPressed: () {
               Navigator.push(
@@ -37,6 +50,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
             },
           ),
           IconButton(
+            tooltip: 'Meus favoritos',
             icon: const Icon(Icons.favorite),
             onPressed: () {
               Navigator.push(
@@ -50,62 +64,73 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Cartão de destaque
-            Card(
-              color: Colors.indigo[50],
-              child: const ListTile(
-                leading: Icon(Icons.local_movies, color: Colors.indigo),
-                title: Text(
-                  'Filmes populares',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+            // Cabeçalho
+            Text(
+              'Olá, ${widget.nomeUsuario}!',
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.local_fire_department, color: Colors.orange),
+                const SizedBox(width: 6),
+                const Expanded(
+                  child: Text(
+                    'Filmes populares',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
                 ),
-                subtitle: Text('Os filmes mais vistos do momento'),
-              ),
+                IconButton(
+                  tooltip: 'Atualizar',
+                  icon: const Icon(Icons.refresh),
+                  onPressed: provider.carregandoPopulares
+                      ? null
+                      : () => provider.carregarPopulares(),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-
-            // Lista de filmes vinda da API
-            Expanded(
-              child: FutureBuilder<List<Filme>>(
-                future: _filmes,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('Não foi possível carregar os filmes'),
-                          TextButton(
-                            onPressed: () {
-                              setState(() {
-                                _filmes = FilmesService.buscarPopulares();
-                              });
-                            },
-                            child: const Text('Tentar novamente'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  final filmes = snapshot.data!;
-                  return ListView.builder(
-                    itemCount: filmes.length,
-                    itemBuilder: (context, index) {
-                      return FilmeCard(filme: filmes[index]);
-                    },
-                  );
-                },
-              ),
-            ),
+            const SizedBox(height: 8),
+            Expanded(child: _lista(provider)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _lista(FilmeProvider provider) {
+    if (provider.carregandoPopulares && provider.populares.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (provider.erroPopulares != null) {
+      return MensagemWidget(
+        icone: Icons.wifi_off,
+        titulo: 'Não foi possível carregar os filmes',
+        texto: provider.erroPopulares,
+        aoTentarNovamente: () => provider.carregarPopulares(),
+      );
+    }
+
+    if (provider.populares.isEmpty) {
+      return MensagemWidget(
+        icone: Icons.movie_outlined,
+        titulo: 'Nenhum filme disponível no momento',
+        aoTentarNovamente: () => provider.carregarPopulares(),
+      );
+    }
+
+    // Puxar a lista para baixo também atualiza
+    return RefreshIndicator(
+      onRefresh: () => provider.carregarPopulares(),
+      child: ListView.builder(
+        itemCount: provider.populares.length,
+        itemBuilder: (context, index) {
+          return FilmeCard(filme: provider.populares[index]);
+        },
       ),
     );
   }

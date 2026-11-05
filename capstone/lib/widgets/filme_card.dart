@@ -3,7 +3,9 @@
 import 'package:flutter/material.dart';
 
 import '../models/filme.dart';
-import '../services/favoritos_service.dart';
+import '../screens/detalhe_filme_screen.dart';
+import 'botao_favorito.dart';
+import 'poster_filme.dart';
 
 class FilmeCard extends StatelessWidget {
   final Filme filme;
@@ -13,73 +15,78 @@ class FilmeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
-      child: Row(
-        children: [
-          // Foto do filme
-          SizedBox(
-            width: 80,
-            height: 120,
-            child: filme.urlPoster != null
-                ? Image.network(
-                    filme.urlPoster!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, erro, stack) =>
-                        const Icon(Icons.broken_image, size: 40),
-                  )
-                : Container(
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.movie, size: 40),
-                  ),
-          ),
-          const SizedBox(width: 12),
+      child: InkWell(
+        // Ao tocar no card, abre a tela de detalhes
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetalheFilmeScreen(filme: filme),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Row(
+            children: [
+              // Capa (proporção 2:3, igual aos pôsteres de cinema)
+              PosterFilme(url: filme.urlPoster, largura: 80, altura: 120),
+              const SizedBox(width: 12),
 
-          // Nome, ano e avaliação
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  filme.titulo,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${filme.ano}',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 4),
-                Row(
+              // Nome, ano e avaliação
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.star, color: Colors.amber, size: 18),
-                    const SizedBox(width: 4),
-                    Text(filme.avaliacao.toStringAsFixed(1)),
+                    Text(
+                      filme.titulo,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_today,
+                          size: 14,
+                          color: Colors.white54,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          filme.ano,
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.star, color: Colors.amber, size: 18),
+                        const SizedBox(width: 4),
+                        Text(
+                          filme.avaliacao.toStringAsFixed(1),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const Text(
+                          ' / 10',
+                          style: TextStyle(color: Colors.white54),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
 
-          // Botão de favoritar
-          ValueListenableBuilder(
-            valueListenable: FavoritosService.favoritos,
-            builder: (context, favoritos, child) {
-              final favorito = FavoritosService.ehFavorito(filme);
-              return IconButton(
-                icon: Icon(
-                  favorito ? Icons.favorite : Icons.favorite_border,
-                  color: Colors.red,
-                ),
-                onPressed: () => FavoritosService.alternar(filme),
-              );
-            },
+              BotaoFavorito(filme: filme),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

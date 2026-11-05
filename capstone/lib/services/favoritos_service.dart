@@ -1,22 +1,30 @@
-// Guarda os filmes favoritados enquanto o app está aberto
+// Salva e recupera os filmes favoritos no aparelho usando SharedPreferences
 
-import 'package:flutter/foundation.dart';
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/filme.dart';
 
 class FavoritosService {
-  // As telas escutam essa lista para atualizar quando ela mudar
-  static final ValueNotifier<List<Filme>> favoritos = ValueNotifier([]);
+  static const String _chave = 'filmes_favoritos';
 
-  static bool ehFavorito(Filme filme) {
-    return favoritos.value.any((f) => f.id == filme.id);
+  // Lê os favoritos salvos. Cada filme fica guardado como um texto JSON.
+  static Future<List<Filme>> carregar() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lista = prefs.getStringList(_chave) ?? [];
+    return lista
+        .map((texto) => Filme.fromJson(jsonDecode(texto) as Map<String, dynamic>))
+        .toList();
   }
 
-  static void alternar(Filme filme) {
-    if (ehFavorito(filme)) {
-      favoritos.value = favoritos.value.where((f) => f.id != filme.id).toList();
-    } else {
-      favoritos.value = [...favoritos.value, filme];
+  // Grava a lista inteira de favoritos
+  static Future<void> salvar(List<Filme> filmes) async {
+    final prefs = await SharedPreferences.getInstance();
+    final lista = filmes.map((filme) => jsonEncode(filme.toJson())).toList();
+    final ok = await prefs.setStringList(_chave, lista);
+    if (!ok) {
+      throw Exception('Não foi possível salvar os favoritos');
     }
   }
 }

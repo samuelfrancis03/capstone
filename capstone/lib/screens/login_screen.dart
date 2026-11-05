@@ -13,6 +13,28 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nomeController = TextEditingController();
+  final _senhaController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nomeController.dispose();
+    _senhaController.dispose();
+    super.dispose();
+  }
+
+  // Não existe autenticação real: só confere se os campos foram preenchidos
+  void _entrar() {
+    if (_formKey.currentState!.validate()) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              PrincipalScreen(nomeUsuario: _nomeController.text.trim()),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,73 +42,69 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                const Icon(Icons.movie, size: 90, color: Colors.indigo),
-                const SizedBox(height: 16),
-                const Text(
-                  'Meus Filmes',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                ),
-                const Text(
-                  'Descubra e favorite seus filmes.',
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 32),
-                TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: 'Nome',
-                    prefixIcon: Icon(Icons.person),
-                    border: OutlineInputBorder(),
-                    filled: true,
-                    fillColor: Colors.white,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.movie_filter,
+                    size: 90,
+                    color: Color(0xFFE53935),
                   ),
-                  validator: (valor) {
-                    if (valor == null || valor.isEmpty) {
-                      return 'Digite o seu nome';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Senha',
-                    prefixIcon: Icon(Icons.lock),
-                    border: OutlineInputBorder(),
-                    filled: true,
-                    fillColor: Colors.white,
+                  const SizedBox(height: 16),
+                  const Text(
+                    'My Movie List',
+                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                   ),
-                  validator: (valor) {
-                    if (valor == null || valor.isEmpty) {
-                      return 'Digite a sua senha';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: FilledButton(
-                    onPressed: () {
-                      // Só entra se os campos estiverem preenchidos
-                      if (_formKey.currentState!.validate()) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const PrincipalScreen(),
-                          ),
-                        );
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Descubra, pesquise e favorite seus filmes.',
+                    style: TextStyle(color: Colors.white60),
+                  ),
+                  const SizedBox(height: 32),
+                  TextFormField(
+                    controller: _nomeController,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Nome ou usuário',
+                      prefixIcon: Icon(Icons.person),
+                    ),
+                    validator: (valor) {
+                      if (valor == null || valor.trim().isEmpty) {
+                        return 'Digite o seu nome ou usuário';
                       }
+                      return null;
                     },
-                    child: const Text('Entrar', style: TextStyle(fontSize: 18)),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _senhaController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Senha',
+                      prefixIcon: Icon(Icons.lock),
+                    ),
+                    validator: (valor) {
+                      if (valor == null || valor.isEmpty) {
+                        return 'Digite a sua senha';
+                      }
+                      return null;
+                    },
+                    onFieldSubmitted: (_) => _entrar(),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: FilledButton(
+                      onPressed: _entrar,
+                      child: const Text('Entrar', style: TextStyle(fontSize: 18)),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
