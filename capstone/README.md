@@ -1,7 +1,7 @@
 # 🎬 My Movie List
 
 Catálogo de filmes em Flutter que usa a API oficial do **The Movie Database (TMDB)**.
-Projeto Capstone (A3) da disciplina de **Desenvolvimento para Ambientes Móveis**.
+Projeto Capstone da disciplina de **Desenvolvimento para Ambientes Móveis**.
 
 ---
 
@@ -10,10 +10,9 @@ Projeto Capstone (A3) da disciplina de **Desenvolvimento para Ambientes Móveis*
 | Campo | Informação |
 |---|---|
 | Aplicativo | My Movie List |
-| Squad | _(preencher)_ |
-| Integrantes | Samuel Rocha — matrícula _(preencher)_ — contato _(preencher)_ |
-|  | Igor Rodrigues — matrícula _(preencher)_ — contato _(preencher)_ |
-|  | _(adicionar demais integrantes, se houver)_ |
+| Integrantes | Samuel Rocha — 72200812 — 72200812@faculdadecotemig.br|
+|  | Igor Rodrigues — 72500085 — 725000852@faculdadecotemig.br |
+
 
 ---
 
@@ -59,7 +58,7 @@ Login ──► Principal ──► Buscar Filme ──► Detalhes
 | 5 | Lista dinâmica com `ListView.builder` | `principal_screen.dart`, `buscar_filme_screen.dart` e `favoritos_screen.dart`. |
 | 6 | `SharedPreferences` persistindo dados ao reabrir | `services/favoritos_service.dart` (salva/lê) + `providers/favoritos_provider.dart` (carrega ao abrir o app). |
 | 7 | Provider separando telas, HTTP e preferências | `providers/auth_provider.dart`, `providers/filme_provider.dart` e `providers/favoritos_provider.dart`, registrados no `MultiProvider` em `main.dart`. As telas só falam com os providers. |
-| 8 | App abrindo e percorrendo o fluxo sem crashar | Erros de rede, de API e de armazenamento tratados em todas as chamadas, com mensagens na tela em vez de travar o app. |
+| 8 | App abrindo e percorrendo o fluxo sem crashar | Erros tratados em todas as chamadas; teste automatizado do fluxo em `test/app_test.dart`. |
 
 ---
 
@@ -70,11 +69,6 @@ Login ──► Principal ──► Buscar Filme ──► Detalhes
 - **URL base:** `https://api.themoviedb.org/3`
 - **Imagens:** `https://image.tmdb.org/t/p/w500` + `poster_path`
 - **Idioma:** todas as requisições usam `language=pt-BR`
-- **Autenticação:** API Read Access Token enviado nos cabeçalhos:
-  ```
-  Authorization: Bearer SEU_TOKEN
-  accept: application/json
-  ```
 
 | Endpoint | Método | Usado em | Dados usados |
 |---|---|---|---|
@@ -123,24 +117,15 @@ flutter pub get
 flutter run
 ```
 
+Para rodar os testes automatizados:
+
+```bash
+flutter test
+```
+
 ### 5.3 Plataformas
 
 O projeto foi criado com suporte a Android, iOS, Web, Windows, macOS e Linux.
-
-O que foi verificado até agora:
-
-- `flutter analyze` sem nenhum problema;
-- compilação para **Web** (`flutter build web`) concluída com sucesso;
-- chamadas reais ao TMDB pelo `TmdbService` com o token do projeto: populares, busca e detalhes
-  retornando dados em português; token inválido (401) e filme inexistente (404) tratados.
-
-- chamadas reais ao Cotemig pelo `CotemigService` com usuário/senha inválidos e token inválido: mensagens de erro da API exibidas corretamente.
-
-> ⚠️ _(Atualizar esta seção depois de rodar o app e fazer login com uma conta real em um emulador/celular Android ou no Chrome.)_
-
-> No **Windows**, rodar o app como aplicativo desktop exige ativar o **Modo de Desenvolvedor**
-> (`start ms-settings:developers`), porque o plugin `shared_preferences` precisa de links simbólicos.
-> Para Android e Chrome isso não é necessário.
 
 ---
 
@@ -181,6 +166,8 @@ capstone/
 │       ├── poster_filme.dart         # Capa com carregamento e ícone para filme sem imagem
 │       ├── botao_favorito.dart       # Coração que favorita/desfavorita
 │       └── mensagem_widget.dart      # Mensagens de erro e lista vazia
+├── test/
+│   └── app_test.dart                 # Testes automatizados
 └── pubspec.yaml                      # Dependências: http, provider, shared_preferences
 ```
 
@@ -209,9 +196,3 @@ Telas (interface) → Providers (estado, `ChangeNotifier`) → Services (HTTP e 
 - Os favoritos ficam somente no aparelho (não sincronizam entre dispositivos);
 - Alguns filmes não têm sinopse em português no TMDB; nesse caso aparece um aviso.
 
-**Melhorias futuras**
-
-- Paginação ("carregar mais") nas listas;
-- Uso do endpoint `/discover/movie` para filtrar por gênero e ano;
-- Mostrar elenco, gêneros e trailer na tela de detalhes;
-- Manter o usuário logado ao reabrir o app (token salvo e `longaDuracao: true`).
