@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'providers/auth_provider.dart';
 import 'providers/favoritos_provider.dart';
 import 'providers/filme_provider.dart';
 import 'screens/login_screen.dart';
@@ -11,6 +12,7 @@ void main() {
     // consigam acessar o mesmo estado
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (context) => AuthProvider()),
         ChangeNotifierProvider(create: (context) => FilmeProvider()),
         // Já carrega os favoritos salvos quando o app abre
         ChangeNotifierProvider(

@@ -30,7 +30,7 @@ guardar os que querem assistir ou de que gostaram.
 
 | Tela | Arquivo | O que faz |
 |---|---|---|
-| Login | `screens/login_screen.dart` | Formulário com nome/usuário e senha (com validação). Não há autenticação real. |
+| Login | `screens/login_screen.dart` | Formulário com usuário e senha (com validação) que autentica na API do Cotemig. |
 | Principal | `screens/principal_screen.dart` | Lista os filmes populares do TMDB, com atualização (botão e "puxar para baixo"). |
 | Buscar Filme | `screens/buscar_filme_screen.dart` | Formulário de pesquisa por nome com resultados da API. |
 | Detalhes | `screens/detalhe_filme_screen.dart` | Consulta `/movie/{id}` e mostra todas as informações; botão de favoritar. |
@@ -53,13 +53,13 @@ Login ──► Principal ──► Buscar Filme ──► Detalhes
 | # | Requisito | Onde foi implementado |
 |---|---|---|
 | 1 | Pelo menos 4 telas com `Navigator.push` e `pop` | 5 telas. `push` em `login_screen.dart`, `principal_screen.dart` e `widgets/filme_card.dart`; retorno pelo botão voltar da AppBar (`pop`). |
-| 2 | API REST com pacote `http` e `async/await`, dados reais | `services/tmdb_service.dart` (`/movie/popular`, `/search/movie`, `/movie/{id}`). |
-| 3 | Loading e erro visíveis na interface | `CircularProgressIndicator` / `LinearProgressIndicator` e `widgets/mensagem_widget.dart` (com "Tentar novamente") nas telas Principal, Busca, Detalhes e Favoritos. |
-| 4 | Formulário com `Form` e `validator` | `login_screen.dart` (nome e senha) e `buscar_filme_screen.dart` (nome do filme). |
+| 2 | API REST com pacote `http` e `async/await`, dados reais | `services/tmdb_service.dart` (`/movie/popular`, `/search/movie`, `/movie/{id}`) e `services/cotemig_service.dart` (login: `/autenticacao`, `/perfil`, `/sair`). |
+| 3 | Loading e erro visíveis na interface | `CircularProgressIndicator` / `LinearProgressIndicator` e `widgets/mensagem_widget.dart` (com "Tentar novamente") nas telas Principal, Busca, Detalhes e Favoritos; loading no botão e mensagem de erro no Login. |
+| 4 | Formulário com `Form` e `validator` | `login_screen.dart` (usuário e senha) e `buscar_filme_screen.dart` (nome do filme). |
 | 5 | Lista dinâmica com `ListView.builder` | `principal_screen.dart`, `buscar_filme_screen.dart` e `favoritos_screen.dart`. |
 | 6 | `SharedPreferences` persistindo dados ao reabrir | `services/favoritos_service.dart` (salva/lê) + `providers/favoritos_provider.dart` (carrega ao abrir o app). |
-| 7 | Provider separando telas, HTTP e preferências | `providers/filme_provider.dart` e `providers/favoritos_provider.dart`, registrados no `MultiProvider` em `main.dart`. As telas só falam com os providers. |
-| 8 | App abrindo e percorrendo o fluxo sem crashar | Erros tratados em todas as chamadas; teste automatizado do fluxo em `test/app_test.dart`. |
+| 7 | Provider separando telas, HTTP e preferências | `providers/auth_provider.dart`, `providers/filme_provider.dart` e `providers/favoritos_provider.dart`, registrados no `MultiProvider` em `main.dart`. As telas só falam com os providers. |
+| 8 | App abrindo e percorrendo o fluxo sem crashar | Erros de rede, de API e de armazenamento tratados em todas as chamadas, com mensagens na tela em vez de travar o app. |
 
 ---
 
@@ -85,6 +85,24 @@ Login ──► Principal ──► Buscar Filme ──► Detalhes
 **Erros tratados:** sem internet, tempo esgotado (15 s), token inválido (401),
 filme não encontrado (404) e outros códigos HTTP. Filmes sem capa mostram um ícone no lugar da imagem.
 
+### API do Cotemig (login)
+
+- **Documentação:** <https://api.cotemig.com.br/v1/doc/>
+- **Tipo:** API REST, respostas em JSON
+- **URL base:** `https://api.cotemig.com.br/v1`
+- **Autenticação:** o usuário e a senha são enviados uma única vez com **Basic Auth**
+  (`Authorization: Basic base64(usuario:senha)`) para gerar um **Bearer token** de 25 minutos
+  (`longaDuracao: false`), usado nas chamadas seguintes. A senha não é salva.
+
+| Endpoint | Método | Autenticação | Uso |
+|---|---|---|---|
+| `/autenticacao` | POST | Basic | Gera o token (`{"token": "..."}`) |
+| `/perfil` | GET | Bearer | Busca o `nome` do usuário para mostrar na tela Principal |
+| `/sair` | GET | Bearer | Invalida o token quando o usuário sai |
+
+Em caso de erro a API responde `{"erro": 401, "codigo": ..., "detalhes": "mensagem"}` e o app mostra
+o texto de `detalhes` na tela de login (ex.: "Usuário ou senha não conferem.").
+
 ---
 
 ## 5. Como rodar
@@ -105,12 +123,6 @@ flutter pub get
 flutter run
 ```
 
-Para rodar os testes automatizados:
-
-```bash
-flutter test
-```
-
 ### 5.3 Plataformas
 
 O projeto foi criado com suporte a Android, iOS, Web, Windows, macOS e Linux.
@@ -118,12 +130,13 @@ O projeto foi criado com suporte a Android, iOS, Web, Windows, macOS e Linux.
 O que foi verificado até agora:
 
 - `flutter analyze` sem nenhum problema;
-- `flutter test` com 6 testes passando (modelo, persistência dos favoritos, validação do login e navegação entre as telas);
 - compilação para **Web** (`flutter build web`) concluída com sucesso;
 - chamadas reais ao TMDB pelo `TmdbService` com o token do projeto: populares, busca e detalhes
   retornando dados em português; token inválido (401) e filme inexistente (404) tratados.
 
-> ⚠️ _(Atualizar esta seção depois de testar o app com um token válido em um emulador/celular Android ou no Chrome.)_
+- chamadas reais ao Cotemig pelo `CotemigService` com usuário/senha inválidos e token inválido: mensagens de erro da API exibidas corretamente.
+
+> ⚠️ _(Atualizar esta seção depois de rodar o app e fazer login com uma conta real em um emulador/celular Android ou no Chrome.)_
 
 > No **Windows**, rodar o app como aplicativo desktop exige ativar o **Modo de Desenvolvedor**
 > (`start ms-settings:developers`), porque o plugin `shared_preferences` precisa de links simbólicos.
@@ -133,9 +146,9 @@ O que foi verificado até agora:
 
 ## 6. Backend local
 
-Este projeto **não possui backend próprio**. Todos os dados de filmes vêm da API pública do TMDB.
-O login é apenas um formulário com validação (não existe cadastro nem verificação de senha), e os
-favoritos ficam salvos localmente no aparelho com `SharedPreferences`.
+Este projeto **não possui backend próprio**. Os dados de filmes vêm da API pública do TMDB e o
+login usa a API do Cotemig (o app não tem cadastro de usuários). Os favoritos ficam salvos
+localmente no aparelho com `SharedPreferences`.
 
 ---
 
@@ -151,8 +164,10 @@ capstone/
 │   │   └── filme.dart                # Classe Filme (fromJson / toJson, ano, data, URL da capa)
 │   ├── services/
 │   │   ├── tmdb_service.dart         # Requisições HTTP ao TMDB e tratamento de erros
+│   │   ├── cotemig_service.dart      # Login na API do Cotemig (autenticação, perfil e sair)
 │   │   └── favoritos_service.dart    # Salva e lê os favoritos com SharedPreferences
 │   ├── providers/
+│   │   ├── auth_provider.dart        # Usuário logado (token e nome), entrar e sair
 │   │   ├── filme_provider.dart       # Estado dos populares, da busca e acesso aos detalhes
 │   │   └── favoritos_provider.dart   # Estado da lista de favoritos (adicionar/remover)
 │   ├── screens/
@@ -166,8 +181,6 @@ capstone/
 │       ├── poster_filme.dart         # Capa com carregamento e ícone para filme sem imagem
 │       ├── botao_favorito.dart       # Coração que favorita/desfavorita
 │       └── mensagem_widget.dart      # Mensagens de erro e lista vazia
-├── test/
-│   └── app_test.dart                 # Testes automatizados
 └── pubspec.yaml                      # Dependências: http, provider, shared_preferences
 ```
 
@@ -180,7 +193,7 @@ Telas (interface) → Providers (estado, `ChangeNotifier`) → Services (HTTP e 
 
 **Funcionalidades implementadas**
 
-- Login com validação de campos;
+- Login com a conta do Cotemig (usuário e senha), com validação de campos e logout;
 - Filmes populares do TMDB com atualização;
 - Busca de filmes por nome;
 - Detalhes completos do filme consultados pelo ID;
@@ -191,7 +204,7 @@ Telas (interface) → Providers (estado, `ChangeNotifier`) → Services (HTTP e 
 
 **Limitações**
 
-- O login não é real (não existe cadastro nem conferência de senha);
+- O login vale só enquanto o app está aberto: ao fechar o app é preciso entrar de novo;
 - Só é carregada a primeira página de resultados da API (20 filmes);
 - Os favoritos ficam somente no aparelho (não sincronizam entre dispositivos);
 - Alguns filmes não têm sinopse em português no TMDB; nesse caso aparece um aviso.
@@ -201,4 +214,4 @@ Telas (interface) → Providers (estado, `ChangeNotifier`) → Services (HTTP e 
 - Paginação ("carregar mais") nas listas;
 - Uso do endpoint `/discover/movie` para filtrar por gênero e ano;
 - Mostrar elenco, gêneros e trailer na tela de detalhes;
-- Login real com conta do TMDB.
+- Manter o usuário logado ao reabrir o app (token salvo e `longaDuracao: true`).

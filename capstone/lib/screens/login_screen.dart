@@ -1,7 +1,9 @@
 // Tela desenvolvida por Samuel Rocha
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../providers/auth_provider.dart';
 import 'principal_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -23,21 +25,35 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // Não existe autenticação real: só confere se os campos foram preenchidos
-  void _entrar() {
-    if (_formKey.currentState!.validate()) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) =>
-              PrincipalScreen(nomeUsuario: _nomeController.text.trim()),
-        ),
-      );
-    }
+  // Valida o formulário e faz o login na API do Cotemig
+  Future<void> _entrar() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.entrar(
+      _nomeController.text.trim(),
+      _senhaController.text,
+    );
+
+    // A tela pode ter sido fechada enquanto esperava a resposta
+    if (!ok || !mounted) return;
+
+    _senhaController.clear();
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PrincipalScreen(nomeUsuario: auth.nome!),
+      ),
+    );
+
+    // Chega aqui quando a tela principal fecha (botão sair ou voltar do Android)
+    auth.sair();
   }
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -60,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Descubra, pesquise e favorite seus filmes.',
+                    'Entre com o seu usuário e senha do Cotemig.',
                     style: TextStyle(color: Colors.white60),
                   ),
                   const SizedBox(height: 32),
@@ -68,12 +84,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _nomeController,
                     textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
-                      labelText: 'Nome ou usuário',
+                      labelText: 'Usuário',
                       prefixIcon: Icon(Icons.person),
                     ),
                     validator: (valor) {
                       if (valor == null || valor.trim().isEmpty) {
-                        return 'Digite o seu nome ou usuário';
+                        return 'Digite o seu usuário';
                       }
                       return null;
                     },
@@ -92,15 +108,40 @@ class _LoginScreenState extends State<LoginScreen> {
                       }
                       return null;
                     },
-                    onFieldSubmitted: (_) => _entrar(),
+                    onFieldSubmitted: (_) {
+                      if (!auth.carregando) _entrar();
+                    },
                   ),
+
+                  // Mensagem de erro da API (ex: "Usuário ou senha não conferem.")
+                  if (auth.erro != null) ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.redAccent),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            auth.erro!,
+                            style: const TextStyle(color: Colors.redAccent),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: FilledButton(
-                      onPressed: _entrar,
-                      child: const Text('Entrar', style: TextStyle(fontSize: 18)),
+                      onPressed: auth.carregando ? null : _entrar,
+                      child: auth.carregando
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 3),
+                            )
+                          : const Text('Entrar', style: TextStyle(fontSize: 18)),
                     ),
                   ),
                 ],

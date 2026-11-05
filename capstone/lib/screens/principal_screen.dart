@@ -36,6 +36,13 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Movie List'),
+        // Botão de sair no lugar da seta de voltar.
+        // O logout em si é feito pela tela de login quando esta tela fecha.
+        leading: IconButton(
+          tooltip: 'Sair',
+          icon: const Icon(Icons.logout),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           IconButton(
             tooltip: 'Buscar filme',
